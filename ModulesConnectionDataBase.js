@@ -1,5 +1,5 @@
 // Get variables from .env file for database connection
-//import "dotenv/config";
+import "dotenv/config";
 import dotenv from "dotenv";
 dotenv.config({ path: "../.env" });
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
@@ -15,9 +15,10 @@ const database = mysql.createPool({
   database: DB_NAME,
 });
 
-const storeEnv = () =>{
-    console.log(process.env);
+const ShowEnv = () =>{
+    console.log("Check .env if following info are undefined\n\n" ,"DB_HOST",DB_HOST,"DB_PORT",DB_PORT, "DB_USER", DB_USER, "DB_NAME", DB_NAME, "\n\n");
 };
 
 // Ready to export
-export { database, storeEnv };
+export { database, ShowEnv };
+export { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME };

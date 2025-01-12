@@ -1,0 +1,6 @@
+DB_HOST=localhost
+DB_PORT=3000
+DB_USER=yourUsername
+DB_PASSWORD= yourPassword
+DB_NAME= name of your dataBase
+PORT=5000
