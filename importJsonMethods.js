@@ -87,7 +87,8 @@ class handleImportQuerry {
   addQuotesToSQLQuerry(sliceWantedValues, jsonValue)
   {
     let temp = [];
-    temp = jsonValue.replace(/'/g, "''");
+    temp = jsonValue.replace(/"/g, " ");
+    temp = temp.replace(/'/g, "\\'");
     temp = `"${temp}"`;
     return (sliceWantedValues.push(temp));
 
@@ -119,12 +120,10 @@ class handleImportQuerry {
                 }
                 else if( slicedObjectForQuerry[ObjectForQuerryIndex][1]  === null)
                 {
-                  //console.log(typeof(slicedObjectForQuerry[ObjectForQuerryIndex][1]));
                   sliceWantedValues.push("NULL");
                 }
                 else
                 {
-                  //console.log(typeof(slicedObjectForQuerry[ObjectForQuerryIndex][1]));
                   sliceWantedValues.push(slicedObjectForQuerry[ObjectForQuerryIndex][1]);
                 } 
                 
@@ -135,8 +134,7 @@ class handleImportQuerry {
 
       ObjectForQuerryIndex++;
     }
-    console.log(sliceWantedValues.join(","));
-
+  
     return sliceWantedValues.join(",");
   }
 
@@ -213,13 +211,10 @@ class handleImportQuerry {
     return(arrayContaningDatatype);
   }
   
-  async verifyDataTypeConformity(parametersDataTypeArray, tempStore, index)
+  async verifyDataTypeConformity(parametersDataTypeArray, tempStore)
   {
     let DataToControl = tempStore;
     DataToControl = Object.entries(DataToControl);
-
-    //console.log(DataToControl);
-    //console.log(parametersDataTypeArray);
 
     let DataToControlIndex = 0;
     let parametersDataTypeArrayIndex = 0;
@@ -230,18 +225,20 @@ class handleImportQuerry {
 
         while(parametersDataTypeArrayIndex < parametersDataTypeArray.length)
         {
+
           if(parametersDataTypeArray[parametersDataTypeArrayIndex][0] ==  DataToControl[DataToControlIndex][0] || typeof DataToControl[DataToControlIndex][1] === null)
           {
-            if(parametersDataTypeArray[parametersDataTypeArrayIndex][1] != typeof DataToControl[DataToControlIndex][1] )
-              console.log("flagged")//return (index+1);
-          }
 
+            if(parametersDataTypeArray[parametersDataTypeArrayIndex][1] != typeof DataToControl[DataToControlIndex][1])
+              return(false);
+            
+          }
           parametersDataTypeArrayIndex ++;
         }
 
       DataToControlIndex++;
     }
-    return (index);
+    return(true);
   }
  
   async getJsonValueAt(index)
@@ -257,6 +254,7 @@ class handleImportQuerry {
       let SQLParameter ="";
       let SQLvalue= "";
       let index = 0;
+      let skiped = 0;
 
     try{
 
@@ -264,21 +262,31 @@ class handleImportQuerry {
       const parametersDataTypeArray = await this.listDatatypeOfParameters();
       await database.query(`USE ${this.dataBase}`);
 
-      while(Object.keys(this.JsonToImport)[index] < 300) 
+      while(Object.keys(this.JsonToImport)[index]) 
       {
 
         tempStore = await this.getJsonValueAt(index);
-        await this.verifyDataTypeConformity(parametersDataTypeArray, tempStore, index);
-        SQLParameter =  await this.createParameterBuffer(tempStore);
-        SQLvalue = await this.createValueBuffer(tempStore);
+        let isDataConform = await this.verifyDataTypeConformity(parametersDataTypeArray, tempStore);
 
-        const Buffer = `insert into ${this.table}(${SQLvalue}) values (${SQLParameter})`;
-        console.log(Buffer);
-        await database.query(Buffer);
+          if(!isDataConform)
+          {
+            index++;
+            skiped++;
+          }
+          else
+          {
+            SQLParameter =  await this.createParameterBuffer(tempStore);
+            SQLvalue = await this.createValueBuffer(tempStore);
+
+            const Buffer = `insert into ${this.table}(${SQLvalue}) values (${SQLParameter})`;
+            console.info(Buffer);
+            console.info("index : ", index);
+            await database.query(Buffer);
+          }
         index++;
       }
 
-      console.log(`--------------------\nImport into ${this.table} is done.\nYou have imported: \n ${this.parameters} \n${index} lines of data.\n--------------------`);
+      console.info(`--------------------\nImport into ${this.table} is done.\nYou have imported: \n${this.parameters} \nTotal ${index} lines of data.\nTotal lines ${skiped} skipped due to Invalid Datatype\n--------------------`);
       database.end();
     }
     catch(error)
@@ -299,4 +307,3 @@ const DoImport = new handleImportQuerry(
 );
 
 console.info(DoImport.executeSQLQuerry());
-//ShowEnv();

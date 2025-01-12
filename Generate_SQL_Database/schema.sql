@@ -12,3 +12,11 @@ CREATE TABLE station (
   type_prise VARCHAR(50)
 );
 
+CREATE TABLE bornes (
+  id INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+  station_id INT UNSIGNED NOT NULL,
+  available BOOLEAN NOT NULL,
+  CONSTRAINT fk_station FOREIGN KEY (station_id) REFERENCES station(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
