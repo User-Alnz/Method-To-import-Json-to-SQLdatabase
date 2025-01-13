@@ -1,9 +1,5 @@
 import { database} from "../ModulesConnectionDataBase.js";
 import { writeFile ,appendFile } from "node:fs/promises";
-import "dotenv/config";
-import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
 class  handleExportTable
 {
@@ -19,9 +15,23 @@ class  handleExportTable
         this.alias = alias;
     }
   
-    addColumn()
+    addColumn(array)
     {
-        
+        if (!Array.isArray(array))
+        throw new TypeError(".addColumn() Invalid datatype. Parameters must be an array");
+
+        if(array.length % 2 != 0)
+        throw new TypeError(".addColumn() Must insert even number of parameters");
+
+        this.newColumns = array;
+    }
+
+    addQuerryManually(StringQuerry) // /!\ BEWARE! No security with request if User has certains privileges it can drop database !! NO parsing Method yet !
+    {
+        if(typeof StringQuerry != "string" )
+        throw new TypeError("addQuerryManually() Invalid parameter. Must enter a string");
+
+        this.setManualquery = StringQuerry;
     }
 
     checkExtentionCSV(filename)
@@ -32,14 +42,7 @@ class  handleExportTable
         return(filename);
     }
 
-    addQuerryManually(StringQuerry) // /!\ BEWARE! No security with request if User has certains privileges it can drop database !! NO parsing Method yet !
-    {
-        if(typeof StringQuerry != "string" )
-        throw new TypeError("Invalid parameter. Must enter a string");
 
-        this.setManualquery = StringQuerry;
-    }
-    
     async writeQuery()
     {
         let buffer = "";
@@ -48,9 +51,36 @@ class  handleExportTable
         buffer = this.setManualquery;
         else
         buffer = `SELECT ${this.parameters} From ${this.table}`;
-        console.log(buffer);
+        console.info( "SQL Querry is",buffer, "\n");
         return(buffer);
     }
+
+    insertColumnTitle() // Create array containing only title column form addColumn()
+    {
+        let getOnlyColumnTitle = [];
+        const newColumns = this.newColumns;
+        
+        for (let index = 0; index < newColumns.length; index += 2) 
+        {
+            getOnlyColumnTitle.push(newColumns[index]);
+        }
+
+        return (getOnlyColumnTitle);
+    }
+
+    async insertColumnValue() // Create array containing only value column form addColumn()
+    {
+        let getOnlyColumnValue = [];
+        const newColumns = this.newColumns;
+       
+        for (let index = 1; index < newColumns.length; index += 2) 
+        {
+            getOnlyColumnValue.push(newColumns[index]);
+        }
+
+        return (getOnlyColumnValue);
+    }
+
 
 
     async createColumnTitle(rawData) 
@@ -66,6 +96,12 @@ class  handleExportTable
         index++;
       }
 
+      if(this.newColumns)
+      {
+        const addNewColumn = this.insertColumnTitle();
+        array.push(addNewColumn);
+      }
+
       array = array.join(",");
       array += "\n";
   
@@ -78,18 +114,27 @@ class  handleExportTable
 
        let index = 0;
        let CSVrow = "";
+       let addNewColumn;
        try
        {
             while(Object.keys(rawData)[index])
             {
-                CSVrow = Object.values(rawData[index]).join(",");
+                CSVrow = Object.values(rawData[index]);
+
+                if(this.newColumns)
+                {
+                    addNewColumn = await this.insertColumnValue();
+                    CSVrow.push(addNewColumn);
+                }
+
+                CSVrow = CSVrow.join(",");
                 CSVrow += "\n";
 
                 await appendFile(`../exportedFiles/${filename}`, CSVrow, "utf-8");
                 index ++;
             }
 
-            return;
+            return(index);
        }
        catch(error)
         {
@@ -105,17 +150,20 @@ class  handleExportTable
             throw new TypeError("Please exportTableToCSV() must provide name \n| like exportTableToCSV(\"data\");");
 
             filename = this.checkExtentionCSV(filename);
-            console.log(filename);
+            
         try
         {
             const SQLquery = await this.writeQuery();
+            console.info("export to ",filename);
             const rawData = await database.query(SQLquery);
+            console.info("\n Export is pending...");
 
             await writeFile(`../exportedFiles/${filename}`, ""); //just create file
-            let CSVColumnTitle = await this.createColumnTitle(rawData[0]);
+            const CSVColumnTitle = await this.createColumnTitle(rawData[0]);
             await appendFile(`../exportedFiles/${filename}`, CSVColumnTitle, "utf-8"); //Write column title for CSV
-            await this.transformRawDataToCSV(rawData[0], filename);
+            const exportCSV = await this.transformRawDataToCSV(rawData[0], filename);// Write line by line because we can use method to addColumn();
 
+            console.info(`--------------------\nExport From ${this.table} is done.\nYou have exported :${CSVColumnTitle}\nAnd  ${exportCSV}lines \n--------------------`);
             database.end();
         }
         catch(error)
@@ -132,5 +180,9 @@ const Doimport = new handleExportTable(
     "station"
 ) 
 //["id", "id_station", "nbre_pdc"]
-Doimport.addQuerryManually("SELECT id,id_station From station");
+Doimport.addQuerryManually("SELECT id,id_station, nbre_pdc From station");
+Doimport.addColumn(["available", "True"]);
+
+//console.info(Doimport.insertColumnTitle());
+//console.info(Doimport.insertColumnValue());
 console.info(Doimport.exportTableToCSV("borne.csv"));
