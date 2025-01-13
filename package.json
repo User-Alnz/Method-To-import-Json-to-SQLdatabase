@@ -4,8 +4,8 @@
   "main": "importJsonMethods.js",
   "type": "module",
   "scripts": {
-    "Execute Import Data": "node --trace-warnings importJsonMethods.js", 
-    "Import Schema SQL": "node --trace-warnings ./Generate_SQL_Database/createDatabase.js"
+    "import data fromFiles": "node --trace-warnings main.js", 
+    "import SchemaSQL": "node --trace-warnings ./Generate_SQL_Database/createDatabase.js"
   },
   "keywords": [],
   "author": "",
