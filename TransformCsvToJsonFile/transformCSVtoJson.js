@@ -28,11 +28,10 @@ class handleConversionToJson
 
 async function transformValueIntoArray(CSV_ValuesInRows)
 {
-    console.log("\n\nIs a new Row");
     CSV_ValuesInRows = CSV_ValuesInRows.replace(/[\r\n]/g, ","); //Control if line return "\n" or "\r" were not delete.
     CSV_ValuesInRows = CSV_ValuesInRows.split(",");
-   console.log(CSV_ValuesInRows);
-
+    
+    return(CSV_ValuesInRows);
 }
 
 async function getValuesIntoStringRawData(incommingBuffer, isLastValueSliced)
@@ -122,6 +121,8 @@ async function transformCSVtoJson()
 
         let incommingBuffer = "";
         let CSV_ValuesStringInRows;
+        let CSV_ValuesArray;
+        let jsonEntriesArray;
         let isFileDone = false;
         let isParsed = {fisrtLineAlreadyParsed : false};
         let isLastValueSliced = { gotSliced: false, value : "" }
@@ -140,12 +141,12 @@ async function transformCSVtoJson()
             
 
             if(!isParsed.fisrtLineAlreadyParsed) //Json entries and CSV column name are in first package of data. Therefore we only use it ounce.
-            {
-                const jsonEntries = await getCSVColumnTitleToArray(incommingBuffer, isParsed);
-                //console.log(jsonEntries);
-            } 
+                jsonEntriesArray = await getCSVColumnTitleToArray(incommingBuffer, isParsed);
+                
 
-            await transformValueIntoArray(CSV_ValuesStringInRows);
+            CSV_ValuesArray = await transformValueIntoArray(CSV_ValuesStringInRows);
+            console.log(jsonEntriesArray);
+            console.log(CSV_ValuesArray);
  
             if(data.bytesRead === 0) //stop when no more buffer to read.
                 isFileDone = true;
