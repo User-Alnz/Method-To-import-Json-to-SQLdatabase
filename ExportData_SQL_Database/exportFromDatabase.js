@@ -1,5 +1,7 @@
 import { database} from "../ModulesConnectionDataBase.js";
 import { writeFile ,appendFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 class  handleExportTable
 {
@@ -51,7 +53,7 @@ class  handleExportTable
         buffer = this.setManualquery;
         else
         buffer = `SELECT ${this.parameters} From ${this.table}`;
-        console.info( "SQL Querry is",buffer, "\n");
+        console.info( "SQL Querry is\n\n",`\"${buffer}\"`, "\n");
         return(buffer);
     }
 
@@ -108,7 +110,7 @@ class  handleExportTable
       return(array);
     }
 
-    async transformRawDataToCSV(rawData, filename)
+    async transformRawDataToCSV(rawData, fullPath)
     {
        //console.log(Object.values(rawData[0]));
 
@@ -130,7 +132,7 @@ class  handleExportTable
                 CSVrow = CSVrow.join(",");
                 CSVrow += "\n";
 
-                await appendFile(`../exportedFiles/${filename}`, CSVrow, "utf-8");
+                await appendFile(fullPath, CSVrow, "utf-8");
                 index ++;
             }
 
@@ -150,6 +152,10 @@ class  handleExportTable
             throw new TypeError("Please exportTableToCSV() must provide name \n| like exportTableToCSV(\"data\");");
 
             filename = this.checkExtentionCSV(filename);
+            const   __filename = fileURLToPath(import.meta.url);
+            const   __dirname = path.dirname( __filename);
+            const filePath = path.resolve(__dirname, "../exportedFiles");
+            const fullPath = path.join(filePath, filename);
             
         try
         {
@@ -157,13 +163,13 @@ class  handleExportTable
             console.info("export to ",filename);
             const rawData = await database.query(SQLquery);
             console.info("\n Export is pending...");
-
-            await writeFile(`../exportedFiles/${filename}`, ""); //just create file
+            
+            await writeFile(fullPath, ""); //just create file
             const CSVColumnTitle = await this.createColumnTitle(rawData[0]);
-            await appendFile(`../exportedFiles/${filename}`, CSVColumnTitle, "utf-8"); //Write column title for CSV
-            const exportCSV = await this.transformRawDataToCSV(rawData[0], filename);// Write line by line because we can use method to addColumn();
+            await appendFile(`${fullPath}`, CSVColumnTitle, "utf-8"); //Write column title for CSV
+            const exportCSV = await this.transformRawDataToCSV(rawData[0], fullPath);// Write line by line because we can use method to addColumn();
 
-            console.info(`--------------------\nExport From ${this.table} is done.\nYou have exported :${CSVColumnTitle}\nAnd  ${exportCSV}lines \n--------------------`);
+            console.info(`--------------------\nExport From ${this.table} is done.\n\nYou have exported the following list: ${CSVColumnTitle}\nYour file got written there : ${fullPath}\nTotal: ${exportCSV} lines \n--------------------`);
             database.end();
         }
         catch(error)
@@ -175,14 +181,4 @@ class  handleExportTable
 
 }
 
-const Doimport = new handleExportTable(
-    "electdatabase",
-    "station"
-) 
-//["id", "id_station", "nbre_pdc"]
-Doimport.addQuerryManually("SELECT id,id_station, nbre_pdc From station");
-Doimport.addColumn(["available", "True"]);
-
-//console.info(Doimport.insertColumnTitle());
-//console.info(Doimport.insertColumnValue());
-console.info(Doimport.exportTableToCSV("borne.csv"));
+export {handleExportTable};

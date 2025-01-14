@@ -2,16 +2,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import {handleImportQuerry} from "./ImportData_SQL_Database/importJsonMethods.js";
+import { handleExportTable } from "./ExportData_SQL_Database/exportFromDatabase.js";
 
 
 const   __filename = fileURLToPath(import.meta.url);
 const   __dirname = path.dirname( __filename);
-const filePath = path.resolve(__dirname, "filesToImport","df2_export (1).json"); //write filename you wanna import 
-console.log(__filename);
-console.log(__dirname);
-console.log(filePath);
-
-
+const filePath = path.resolve(__dirname, "fileToImport","df2_export (1).json"); //write filename you wanna import 
 const rawData = readFileSync(filePath, "utf-8");
 const json = JSON.parse(rawData);
 
@@ -21,5 +17,15 @@ const DoImport = new handleImportQuerry(
     ["id_station", "n_station", "ad_station", "xlongitude", "ylatitude", "nbre_pdc", "accessibilite", "puiss_max", "type_prise"],
     json,
   );
-  
-console.info(DoImport.executeSQLQuerry());
+
+  const DoExport = new handleExportTable( 
+    "electdatabase",
+    "station"
+    //["id", "id_station", "nbre_pdc"] Can also be used as argument in handleExportTable()
+) 
+
+
+//DoImport.executeSQLQuerry();
+DoExport.addQuerryManually("SELECT id,id_station, nbre_pdc From station");
+DoExport.addColumn(["available", "True"]);
+DoExport.exportTableToCSV("borne.csv");
