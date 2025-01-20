@@ -1,5 +1,5 @@
 import { open, writeFile, appendFile } from "node:fs/promises";
-import path, { join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,19 +26,34 @@ class handleConversionToJson
 
 }
 
-async function writeIntoJsonFormat(indexTitle, TitleEntriesArray, ValuesaSArray)
+function controlDataTypeStringOrNumber(valueAsString)
+{
+    let index = 0;
+
+    while(index < valueAsString.length)
+    {
+        if(!(valueAsString.charCodeAt(index) > 47 && valueAsString.charCodeAt(index) < 58) && valueAsString.charCodeAt(index) !==  46)
+            return(`\"${valueAsString}\"`);
+
+        index ++;
+    }
+    return(valueAsString);
+
+}
+
+async function writeIntoJsonFormat(indexTitle, TitleEntriesArray, valuesToWrite)
 {
     let indexValue = 0;
     let DoNotBeLongerThan = TitleEntriesArray.length;
     let buffer = "";
     
-    while(indexValue < ValuesaSArray.length)
+    while(indexValue < valuesToWrite.length)
     {
-        //console.log(TitleEntriesArray[indexTitle], "is at index : ", indexTitle, "Its value is : ", `${ValuesaSArray[indexValue]}` ,"is at index : ", indexValue, "\n\n");
+        //console.log(TitleEntriesArray[indexTitle], "is at index : ", indexTitle, "Its value is : ", `${valuesToWrite[indexValue]}` ,"is at index : ", indexValue, "\n\n");
         if(indexTitle.value === 0)
             buffer += "{";
-        
-        buffer += `"${TitleEntriesArray[indexTitle.value]}" : "${ValuesaSArray[indexValue]}" ` ;
+
+        buffer += `"${TitleEntriesArray[indexTitle.value]}" : ${controlDataTypeStringOrNumber(valuesToWrite[indexValue])} ` ;
 
         if(indexTitle.value !== (DoNotBeLongerThan - 1))
             buffer += ",";
@@ -46,21 +61,21 @@ async function writeIntoJsonFormat(indexTitle, TitleEntriesArray, ValuesaSArray)
         if(indexTitle.value === (DoNotBeLongerThan - 1))
             buffer += "}\n";
 
-        indexTitle.value = (indexTitle.value + 1) % DoNotBeLongerThan; //create infinite loop in TitleEntires Array to make match each value always with it's title
+        indexTitle.value = (indexTitle.value + 1) % DoNotBeLongerThan; //create infinite loop in TitleEntires Array to make match each value always with its title
         indexValue++;
     }
 
     return (buffer);
 }
 
-async function transformValueIntoArray(CSV_ValuesInRows)
+async function transformValueIntoArray(valuesToWrite)
 {
-    CSV_ValuesInRows = CSV_ValuesInRows.replace(/[\r\n]/g, ","); //Control if line return "\n" or "\r" were not delete.
-    CSV_ValuesInRows = CSV_ValuesInRows.split(",").filter(value => value.trim() !== ""); //create array by removing "," in string. then remove empty cells ""
-    return(CSV_ValuesInRows);
+    valuesToWrite = valuesToWrite.replace(/[\r\n]/g, ","); //Control if line return "\n" or "\r" were not delete.
+    valuesToWrite = valuesToWrite.split(",").filter(value => value.trim() !== ""); //create array by removing "," in string. then remove empty cells ""
+    return(valuesToWrite);
 }
 
-async function getValuesIntoStringRawData(incommingBuffer, isLastValueSliced)
+async function getValuesIntoStringRawData(incommingBuffer, isLastValueSliced, indexValue)
 {
     let sliceValueInString = "";
     let getLastvalueIfSliced = "";
@@ -92,7 +107,12 @@ async function getValuesIntoStringRawData(incommingBuffer, isLastValueSliced)
         isLastValueSliced.value = getLastvalueIfSliced; //store string to next package
     }
 
-    
+    if(indexValue.firstIncommingpackage ===  false)
+    {
+        index = indexValue.value;
+        indexValue.firstIncommingpackage = true;
+    }
+
     while(index < reverseIndex) //Stop writing to value sliced from previous loop. Because it will be reconsitiue in next 
     {
         if(incommingBuffer[index] == "\n" && incommingBuffer[index] != "\r")
@@ -127,7 +147,20 @@ async function getCSVColumnTitleToArray(incommingBuffer, isParsed)
     isParsed.fisrtLineAlreadyParsed = true;
     title = title.split(",");//transform string to array
 
-    return (title); 
+    return (title);
+}
+
+async function defineWhereToStartWritingValue(incommingBuffer, indexValue)
+{
+    let count = 0;
+
+    while(incommingBuffer[count] != "\n" && incommingBuffer[count] != "\r") // "\r" because depending of encoding file
+    {
+        count++;
+    }
+
+    indexValue.value = count+1; // to start next index after \n
+    return (indexValue.value); 
 }
 
 async function transformCSVtoJson()
@@ -151,7 +184,8 @@ async function transformCSVtoJson()
         //keep persistente memory of variable while function running
         const isParsed = { fisrtLineAlreadyParsed : false };
         const isLastValueSliced = { gotSliced: false, value : "" };
-        const indexTitle = {value : 0};
+        const indexTitle = { value : 0 };
+        const indexValue = { value : 0, firstIncommingpackage : false};
 
         let fileSize;
 
@@ -168,9 +202,12 @@ async function transformCSVtoJson()
                 incommingBuffer = incommingBuffer.slice(0, data.bytesRead); //ensure to keep only usefull data because original buffer get overwritten
 
             if(!isParsed.fisrtLineAlreadyParsed) //Json entries and CSV column name are in first package of data. Therefore we only use it ounce.
-            TitleEntriesArray = await getCSVColumnTitleToArray(incommingBuffer, isParsed);
+            {
+                TitleEntriesArray = await getCSVColumnTitleToArray(incommingBuffer, isParsed);
+                indexValue.value = await defineWhereToStartWritingValue(incommingBuffer, indexValue);
+            }
 
-            valuesToWrite = await getValuesIntoStringRawData(incommingBuffer, isLastValueSliced);                
+            valuesToWrite = await getValuesIntoStringRawData(incommingBuffer, isLastValueSliced, indexValue);                
             valuesToWrite = await transformValueIntoArray(valuesToWrite);
             valuesToWrite = await writeIntoJsonFormat(indexTitle, TitleEntriesArray, valuesToWrite);
             valuesToWrite = valuesToWrite.split("\n").join(",");
@@ -192,7 +229,7 @@ async function transformCSVtoJson()
         await filehandle.close();
         await jsonFile.close();
 
-        console.log("File proprely",filePath, "converted to .json");
+        console.info("File at",filePath, " properly converted to .json");
 
     }
     catch(error)
