@@ -53,7 +53,7 @@ async function writeIntoJsonFormat(indexTitle, TitleEntriesArray, valuesToWrite)
         if(indexTitle.value === 0)
             buffer += "{";
 
-        buffer += `"${TitleEntriesArray[indexTitle.value]}" : ${controlDataTypeStringOrNumber(valuesToWrite[indexValue])} ` ;
+        buffer += `"${TitleEntriesArray[indexTitle.value]}":${controlDataTypeStringOrNumber(valuesToWrite[indexValue])}` ;
 
         if(indexTitle.value !== (DoNotBeLongerThan - 1))
             buffer += ",";

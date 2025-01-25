@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import {handleImportQuerry} from "./ImportData_SQL_Database/importJsonMethods.js";
+import { handleImportQuerry} from "./ImportData_SQL_Database/importJsonMethods.js";
 import { handleExportTable } from "./ExportData_SQL_Database/exportFromDatabase.js";
 
 
@@ -22,7 +22,7 @@ const DoImport = new handleImportQuerry(
     "electdatabase",
     "station"
     //["id", "id_station", "nbre_pdc"] Can also be used as argument in handleExportTable()
-) 
+);
 
 
 //DoImport.executeSQLQuerry();
