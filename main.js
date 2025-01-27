@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { handleImportQuerry} from "./ImportData_SQL_Database/importJsonMethods.js";
 import { handleExportTable } from "./ExportData_SQL_Database/exportFromDatabase.js";
+import { handleConversionToJson } from "./TransformCsvToJsonFile/transformCSVtoJson.js";
 
 
 const   __filename = fileURLToPath(import.meta.url);
@@ -24,8 +25,12 @@ const DoImport = new handleImportQuerry(
     //["id", "id_station", "nbre_pdc"] Can also be used as argument in handleExportTable()
 );
 
+const DoConversionToJson = new handleConversionToJson("borne.csv", "borne.json");
 
 //DoImport.executeSQLQuerry();
-DoExport.addQuerryManually("SELECT id,id_station, nbre_pdc From station");
-DoExport.addColumn(["available", "True"]);
-DoExport.exportTableToCSV("borne.csv");
+
+//DoExport.addQuerryManually("SELECT id,id_station, nbre_pdc From station");
+//DoExport.addColumn(["available", "True"]);
+//DoExport.exportTableToCSV("borne.csv");
+
+DoConversionToJson.transformCSVtoJson();
