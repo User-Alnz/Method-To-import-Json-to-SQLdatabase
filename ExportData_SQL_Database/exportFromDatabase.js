@@ -117,12 +117,14 @@ class  handleExportTable
        let index = 0;
        let CSVrow = "";
        let addNewColumn;
+
+       let nbre_pdc =0;
        try
        {
-            while(Object.keys(rawData)[index])
+            /*while(Object.keys(rawData)[index])
             {
                 CSVrow = Object.values(rawData[index]);
-
+                console.log(CSVrow);
                 if(this.newColumns)
                 {
                     addNewColumn = await this.insertColumnValue();
@@ -133,6 +135,33 @@ class  handleExportTable
                 CSVrow += "\n";
 
                 await appendFile(fullPath, CSVrow, "utf-8");
+                index ++;
+            }*/
+
+            while(Object.keys(rawData)[index])
+            {
+                CSVrow = Object.values(rawData[index]);
+
+                nbre_pdc = CSVrow[2];
+            
+                while(nbre_pdc > 0)
+                {
+                    
+                    if(this.newColumns)
+                    {
+                        addNewColumn = await this.insertColumnValue();
+                        CSVrow.push(addNewColumn);
+                        
+                    }
+
+                        CSVrow = CSVrow.join(",");
+                        CSVrow += "\n";
+                        console.log( "export :" ,CSVrow);
+                        await appendFile(fullPath, CSVrow, "utf-8");
+                        CSVrow = Object.values(rawData[index]);
+
+                    nbre_pdc --;
+                }
                 index ++;
             }
 
