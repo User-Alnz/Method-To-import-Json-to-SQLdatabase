@@ -178,7 +178,7 @@ class handleConversionToJson
             const filehandle = await open(pathFileToRead, "r");
 
             //initiate buffer parameters to readfile 
-            const buffer = Buffer.alloc(1024); //read 1024 Bytes or 1 1 Kilobyte || change size to work with bigger or lower package of data
+            const buffer = Buffer.alloc(4024); //read 1024 Bytes or 1 1 Kilobyte || change size to work with bigger or lower package of data
             const startReadFileFromIndex = 0;
             let positionInFile = 0;
 

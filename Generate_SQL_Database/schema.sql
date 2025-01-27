@@ -14,6 +14,7 @@ CREATE TABLE station (
 
 CREATE TABLE bornes (
   id INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+  id_station VARCHAR(100),
   station_id INT UNSIGNED NOT NULL,
   available BOOLEAN NOT NULL,
   CONSTRAINT fk_station FOREIGN KEY (station_id) REFERENCES station(id)

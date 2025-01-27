@@ -2,10 +2,11 @@ import { database, ShowEnv } from "../ModulesConnectionDataBase.js";
 
 class handleImportQuerry {
 
-  constructor( SQLDataBase = null , SQLTableName = null, parameters = [], jsonFile) {
+  constructor( SQLDataBase = null , SQLTableName = null, parametersJson = [], dataBaseParameters =[], jsonFile) {
     this.dataBase = SQLDataBase;
     this.table = SQLTableName;
-    this.parameters = parameters;
+    this.parameters = parametersJson;
+    this.parametersFromDatabaseColumn = dataBaseParameters;
     this.JsonToImport = jsonFile;
   }
 
@@ -24,7 +25,7 @@ class handleImportQuerry {
         index++;
     }
     
-    return displaysample; 
+    return (console.info(displaysample)); 
    
   }
 
@@ -82,6 +83,14 @@ class handleImportQuerry {
 
   }
 
+  transformBooleanStringToBooleanNumber(sliceWantedValues, jsonValue)
+  {
+    if(jsonValue === 'true')
+      return (sliceWantedValues.push(1));
+    else
+      return (sliceWantedValues.push(0));
+  }
+
   async createParameterBuffer(ObjectValues) {
 
     let slicedObjectForQuerry = ObjectValues;
@@ -100,7 +109,15 @@ class handleImportQuerry {
         {
             if (parameterList[parameterListIndex] == slicedObjectForQuerry[ObjectForQuerryIndex][0])
             {
-                if(typeof slicedObjectForQuerry[ObjectForQuerryIndex][1] === "string")
+              
+                if((typeof slicedObjectForQuerry[ObjectForQuerryIndex][1] === "string" && slicedObjectForQuerry[ObjectForQuerryIndex][1].toLowerCase() === 'true' ) 
+                    || (typeof slicedObjectForQuerry[ObjectForQuerryIndex][1] === "string" && slicedObjectForQuerry[ObjectForQuerryIndex][1].toLowerCase() === 'false'))
+                {
+                  temp = slicedObjectForQuerry[ObjectForQuerryIndex][1];
+                  this.transformBooleanStringToBooleanNumber(sliceWantedValues, temp);
+                  temp = null; //free memory
+                }
+                else if(typeof slicedObjectForQuerry[ObjectForQuerryIndex][1] === "string")
                 {
                   temp = slicedObjectForQuerry[ObjectForQuerryIndex][1];
                   this.addQuotesToSQLQuerry(sliceWantedValues, temp);
@@ -236,6 +253,18 @@ class handleImportQuerry {
     return array;
   };
 
+  async getdataBaseParametersAsValue()
+  {
+    if(!Array.isArray(this.parametersFromDatabaseColumn) && this.parametersFromDatabaseColumn.length !== this.parameters.length)
+      throw new Error("Invalid dataBaseParameters must ba an array [] and must be as long as parameters entries");
+
+    if(this.parametersFromDatabaseColumn.length === this.parameters.length)
+      return (this.parametersFromDatabaseColumn);
+    else
+    return("");
+  }
+
+
   async executeSQLQuerry() {
 
       let tempStore = [];
@@ -248,6 +277,7 @@ class handleImportQuerry {
 
       await this.verifyParameters();
       const parametersDataTypeArray = await this.listDatatypeOfParameters();
+      SQLvalue = await this.getdataBaseParametersAsValue();
       await database.query(`USE ${this.dataBase}`);
 
       while(Object.keys(this.JsonToImport)[index]) 
@@ -264,7 +294,9 @@ class handleImportQuerry {
           else
           {
             SQLParameter =  await this.createParameterBuffer(tempStore);
-            SQLvalue = await this.createValueBuffer(tempStore);
+
+            if (!this.parametersFromDatabaseColumn || !Array.isArray(this.parametersFromDatabaseColumn) || this.parametersFromDatabaseColumn.length === 0)
+              SQLvalue = await this.createValueBuffer(tempStore);
 
             const Buffer = `insert into ${this.table}(${SQLvalue}) values (${SQLParameter})`;
             console.info(Buffer);
